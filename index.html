@@ -1,183 +1,197 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Issue Tracker Helpdesk</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Issue Tracker Helpdesk (Google Sheets)</title>
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    background: #f9f9f9;
-  }
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+    }
 
-  h2 {
-    margin-bottom: 10px;
-  }
+    h2 {
+      margin-bottom: 10px;
+    }
 
-  input {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-  }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
 
-  .article {
-    background: #fff;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    overflow: hidden;
-  }
+    .article {
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      overflow: hidden;
+    }
 
-  .article h3 {
-    margin: 0;
-    padding: 12px;
-    cursor: pointer;
-    background: #f1f1f1;
-    user-select: none;
-  }
+    .article h3 {
+      margin: 0;
+      padding: 12px;
+      cursor: pointer;
+      background: #f1f1f1;
+      user-select: none;
+    }
 
-  .article h3:hover {
-    background: #eaeaea;
-  }
+    .article h3:hover {
+      background: #eaeaea;
+    }
 
-  .content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.4s ease, padding 0.3s ease;
-    padding: 0 12px;
-  }
+    .content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s ease;
+      padding: 0 12px;
+    }
 
-  .content.open {
-    padding: 12px;
-    max-height: 500px;
-  }
+    .content.open {
+      padding: 12px;
+      max-height: 500px;
+    }
 
-  mark {
-    background: yellow;
-  }
+    mark {
+      background: yellow;
+    }
 
-  @media (max-width: 600px) {
-    body { padding: 10px; }
-  }
-</style>
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>📚 Issue Tracker Helpdesk</h2>
+  <h2>📚 Issue Tracker Helpdesk</h2>
+  <input
+    type="text"
+    id="search"
+    placeholder="Cari judul artikel..."
+    autocomplete="off"
+  />
 
-<input
-  type="text"
-  id="search"
-  placeholder="Cari judul artikel..."
-  autocomplete="off"
-/>
+  <div id="list"></div>
 
-<div id="list"></div>
+  <!-- PapaParse -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-<!-- PapaParse -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script>
+    // =========================
+    // KONFIGURASI GOOGLE SHEET
+    // =========================
+    const sheetUrl =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
 
-<script>
-  // ===== URL GOOGLE SHEETS (CSV) =====
-  const sheetUrl =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
+    // Anti-cache (pakai AllOrigins)
+    const url =
+      "https://api.allorigins.win/raw?url=" +
+      encodeURIComponent(sheetUrl + "&t=" + Date.now());
 
-  // Proxy agar tidak kena CORS
-  const url =
-    "https://api.allorigins.win/raw?url=" +
-    encodeURIComponent(sheetUrl + "&t=" + new Date().getTime());
+    let dataArticles = [];
+    let activeIndex = null;
 
-  let dataArticles = [];
-  let activeIndex = null;
-
-  // ===== HIGHLIGHT KATA =====
-  function highlight(text, keyword) {
-    if (!keyword) return text;
-    const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(${safe})`, "gi");
-    return text.replace(regex, "<mark>$1</mark>");
-  }
-
-  // ===== RENDER ARTIKEL (HANYA SAAT SEARCH) =====
-  function renderArticles(keyword = "") {
-    const list = document.getElementById("list");
-    list.innerHTML = "";
-
-    // Jika belum mengetik → kosong
-    if (keyword.trim() === "") return;
-
-    const filtered = dataArticles.filter(item =>
-      item.judul.toLowerCase().includes(keyword.toLowerCase())
-    );
-
-    if (filtered.length === 0) {
-      list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
-      return;
+    // =========================
+    // FUNGSI HIGHLIGHT
+    // =========================
+    function highlight(text, keyword) {
+      if (!keyword) return text;
+      const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(${safe})`, "gi");
+      return text.replace(regex, "<mark>$1</mark>");
     }
 
-    filtered.forEach((item, index) => {
-      list.innerHTML += `
-        <div class="article">
-          <h3 onclick="toggle(${index})">
-            ${highlight(item.judul, keyword)}
-          </h3>
-          <div class="content" id="content-${index}">
-            ${item.isi}
+    // =========================
+    // RENDER ARTIKEL
+    // (HANYA JIKA USER MENCARI)
+    // =========================
+    function renderArticles(keyword = "") {
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      // ❌ Jangan tampilkan apa pun jika belum ada keyword
+      if (keyword.trim() === "") return;
+
+      const filtered = dataArticles.filter(item =>
+        item.judul.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      if (!filtered.length) {
+        list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
+        return;
+      }
+
+      filtered.forEach((item, index) => {
+        list.innerHTML += `
+          <div class="article">
+            <h3 onclick="toggle(${index})">
+              ${highlight(item.judul, keyword)}
+            </h3>
+            <div class="content" id="content-${index}">
+              ${item.isi}
+            </div>
           </div>
-        </div>
-      `;
-    });
-  }
-
-  // ===== TOGGLE ISI =====
-  function toggle(index) {
-    if (activeIndex !== null && activeIndex !== index) {
-      document
-        .getElementById("content-" + activeIndex)
-        ?.classList.remove("open");
-    }
-
-    const el = document.getElementById("content-" + index);
-    el.classList.toggle("open");
-
-    activeIndex = el.classList.contains("open") ? index : null;
-  }
-
-  // ===== LOAD CSV =====
-  Papa.parse(url, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: function (results) {
-      dataArticles = results.data.map(row => {
-        const clean = {};
-        Object.keys(row).forEach(k => {
-          clean[k.trim().toLowerCase()] = row[k];
-        });
-        return {
-          judul: clean.judul || "",
-          isi: clean.isi || ""
-        };
+        `;
       });
-    },
-    error: function () {
-      document.getElementById("list").innerHTML =
-        "<p>Gagal memuat data.</p>";
     }
-  });
 
-  // ===== EVENT SEARCH =====
-  document.getElementById("search").addEventListener("keyup", e => {
-    activeIndex = null;
-    renderArticles(e.target.value);
-  });
-</script>
+    // =========================
+    // TOGGLE ISI ARTIKEL
+    // =========================
+    function toggle(index) {
+      if (activeIndex !== null && activeIndex !== index) {
+        document
+          .getElementById("content-" + activeIndex)
+          ?.classList.remove("open");
+      }
+
+      const el = document.getElementById("content-" + index);
+      el.classList.toggle("open");
+      activeIndex = el.classList.contains("open") ? index : null;
+    }
+
+    // =========================
+    // LOAD CSV (DATA SAJA)
+    // =========================
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        dataArticles = results.data.map(row => {
+          const clean = {};
+          Object.keys(row).forEach(
+            k => (clean[k.trim().toLowerCase()] = row[k])
+          );
+          return {
+            judul: clean.judul || "",
+            isi: clean.isi || ""
+          };
+        });
+      },
+      error: function (err) {
+        console.error("Gagal load CSV:", err);
+        document.getElementById("list").innerHTML =
+          "<p>Gagal memuat data.</p>";
+      }
+    });
+
+    // =========================
+    // EVENT SEARCH
+    // =========================
+    document.getElementById("search").addEventListener("keyup", e => {
+      activeIndex = null;
+      renderArticles(e.target.value);
+    });
+  </script>
 
 </body>
 </html>
