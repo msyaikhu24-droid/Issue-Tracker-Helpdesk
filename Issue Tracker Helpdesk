@@ -48,12 +48,11 @@ input {
 
 .content.open {
   padding: 12px;
-  max-height: 300px;
+  max-height: 500px;
 }
 
 mark {
   background: yellow;
-  padding: 0 3px;
 }
 
 /* Mobile */
@@ -79,9 +78,11 @@ const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3Ne
 let dataArticles = [];
 let activeIndex = null;
 
+// highlight keyword
 function highlight(text, keyword) {
   if (!keyword) return text;
-  const regex = new RegExp(`(${keyword})`, "gi");
+  const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${safe})`, "gi");
   return text.replace(regex, "<mark>$1</mark>");
 }
 
@@ -90,10 +91,10 @@ function renderArticles(keyword = "") {
   list.innerHTML = "";
 
   const filtered = dataArticles.filter(item =>
-    item.Judul.toLowerCase().includes(keyword.toLowerCase())
+    item.judul.toLowerCase().includes(keyword.toLowerCase())
   );
 
-  if (filtered.length === 0) {
+  if (!filtered.length) {
     list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
     return;
   }
@@ -102,10 +103,10 @@ function renderArticles(keyword = "") {
     list.innerHTML += `
       <div class="article">
         <h3 onclick="toggle(${index})">
-          ${highlight(item.Judul, keyword)}
+          ${highlight(item.judul, keyword)}
         </h3>
         <div class="content" id="content-${index}">
-          ${item.Isi}
+          ${item.isi}
         </div>
       </div>
     `;
@@ -114,23 +115,39 @@ function renderArticles(keyword = "") {
 
 function toggle(index) {
   if (activeIndex !== null && activeIndex !== index) {
-    document
-      .getElementById("content-" + activeIndex)
-      .classList.remove("open");
+    document.getElementById("content-" + activeIndex).classList.remove("open");
   }
 
-  const content = document.getElementById("content-" + index);
-  content.classList.toggle("open");
-  activeIndex = content.classList.contains("open") ? index : null;
+  const el = document.getElementById("content-" + index);
+  el.classList.toggle("open");
+  activeIndex = el.classList.contains("open") ? index : null;
 }
 
+// LOAD DATA
 Papa.parse(url, {
   download: true,
   header: true,
   skipEmptyLines: true,
   complete: function(results) {
-    dataArticles = results.data;
+
+    // NORMALISASI HEADER (ANTI SPASI / BOM)
+    dataArticles = results.data.map(row => {
+      const clean = {};
+      Object.keys(row).forEach(k => {
+        clean[k.trim().toLowerCase()] = row[k];
+      });
+      return {
+        judul: clean.judul || "",
+        isi: clean.isi || ""
+      };
+    });
+
     renderArticles();
+  },
+  error: function(err) {
+    document.getElementById("list").innerHTML =
+      "<p>Gagal memuat data.</p>";
+    console.error(err);
   }
 });
 
