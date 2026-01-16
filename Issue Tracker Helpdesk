@@ -24,9 +24,7 @@
       border-radius: 4px;
       background-color: #fff;
     }
-    h2 { 
-      color: #333; 
-    }
+    h2 { color: #333; }
   </style>
 </head>
 <body>
@@ -36,15 +34,13 @@
 
 <div id="list"></div>
 
-<!-- PapaParse untuk parsing CSV -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-  // Ganti URL ini dengan link Publish CSV dari Google Sheets
+  // Ganti ini dengan URL CSV Google Sheets yang sudah dipublish
   const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
 
   let dataArticles = [];
 
-  // Fungsi menampilkan artikel berdasarkan keyword
   function renderArticles(keyword = "") {
     const list = document.getElementById('list');
     list.innerHTML = "";
@@ -69,7 +65,6 @@
     });
   }
 
-  // Load data dari Google Sheets CSV
   function loadData() {
     Papa.parse(url, {
       download: true,
@@ -86,12 +81,10 @@
     });
   }
 
-  // Event search
   document.getElementById('search').addEventListener('keyup', (e) => {
     renderArticles(e.target.value);
   });
 
-  // Load data saat halaman pertama kali dibuka
   loadData();
 </script>
 
