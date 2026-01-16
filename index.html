@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Artikel Online Simple</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      padding: 20px; 
+      background-color: #f9f9f9;
+    }
+    input { 
+      width: 100%; 
+      padding: 8px; 
+      margin-bottom: 10px; 
+      font-size: 16px; 
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .article { 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      margin-bottom: 10px; 
+      border-radius: 4px;
+      background-color: #fff;
+    }
+    h2 { color: #333; }
+  </style>
+</head>
+<body>
+
+<h2>Artikel Online (Google Sheets)</h2>
+<input type="text" id="search" placeholder="Cari artikel...">
+
+<div id="list"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+  // Ganti ini dengan URL CSV Google Sheets yang sudah dipublish
+  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
+
+  let dataArticles = [];
+
+  function renderArticles(keyword = "") {
+    const list = document.getElementById('list');
+    list.innerHTML = "";
+
+    const filtered = dataArticles.filter(item => 
+      item.judul.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    if(filtered.length === 0){
+      list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
+      return;
+    }
+
+    filtered.forEach(item => {
+      const articleHTML = `
+        <div class="article">
+          <h3>${item.judul}</h3>
+          <p>${item.isi}</p>
+        </div>
+      `;
+      list.innerHTML += articleHTML;
+    });
+  }
+
+  function loadData() {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        dataArticles = results.data;
+        renderArticles();
+      },
+      error: function(err) {
+        console.error("Gagal load CSV:", err);
+        document.getElementById('list').innerHTML = "<p>Gagal memuat data. Pastikan URL CSV benar dan sheet sudah dipublish.</p>";
+      }
+    });
+  }
+
+  document.getElementById('search').addEventListener('keyup', (e) => {
+    renderArticles(e.target.value);
+  });
+
+  loadData();
+</script>
+
+</body>
+</html>
