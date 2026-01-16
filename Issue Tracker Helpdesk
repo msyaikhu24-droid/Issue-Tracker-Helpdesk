@@ -48,7 +48,7 @@ input {
 
 .content.open {
   padding: 12px;
-  max-height: 500px;
+  max-height: 500px; /* hanya satu max-height */
 }
 
 mark {
@@ -78,7 +78,7 @@ const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3Ne
 let dataArticles = [];
 let activeIndex = null;
 
-// highlight keyword
+// Highlight keyword
 function highlight(text, keyword) {
   if (!keyword) return text;
   const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -86,6 +86,7 @@ function highlight(text, keyword) {
   return text.replace(regex, "<mark>$1</mark>");
 }
 
+// Render artikel
 function renderArticles(keyword = "") {
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -113,6 +114,7 @@ function renderArticles(keyword = "") {
   });
 }
 
+// Toggle open/close
 function toggle(index) {
   if (activeIndex !== null && activeIndex !== index) {
     document.getElementById("content-" + activeIndex).classList.remove("open");
@@ -123,14 +125,14 @@ function toggle(index) {
   activeIndex = el.classList.contains("open") ? index : null;
 }
 
-// LOAD DATA
+// Load data CSV
 Papa.parse(url, {
   download: true,
   header: true,
   skipEmptyLines: true,
   complete: function(results) {
 
-    // NORMALISASI HEADER (ANTI SPASI / BOM)
+    // Normalisasi header (anti spasi / huruf besar/kecil)
     dataArticles = results.data.map(row => {
       const clean = {};
       Object.keys(row).forEach(k => {
@@ -145,12 +147,12 @@ Papa.parse(url, {
     renderArticles();
   },
   error: function(err) {
-    document.getElementById("list").innerHTML =
-      "<p>Gagal memuat data.</p>";
     console.error(err);
+    document.getElementById("list").innerHTML = "<p>Gagal memuat data.</p>";
   }
 });
 
+// Search
 document.getElementById("search").addEventListener("keyup", e => {
   activeIndex = null;
   renderArticles(e.target.value);
