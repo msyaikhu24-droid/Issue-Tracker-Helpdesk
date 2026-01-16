@@ -1,62 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Artikel Online (Google Sheets)</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f9f9f9;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.article {
+  background: #fff;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+}
+
+.article h3 {
+  margin: 0;
+  padding: 12px;
+  cursor: pointer;
+  background: #f1f1f1;
+}
+
+.article h3:hover {
+  background: #eaeaea;
+}
+
+.content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.3s ease;
+  padding: 0 12px;
+}
+
+.content.open {
+  padding: 12px;
+  max-height: 300px;
+}
+
+mark {
+  background: yellow;
+  padding: 0 3px;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<h2>📚 Artikel Online</h2>
+<input type="text" id="search" placeholder="Cari judul artikel...">
+
+<div id="list"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
+const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
 
-  let dataArticles = [];
+let dataArticles = [];
+let activeIndex = null;
 
-  function renderArticles(keyword = "") {
-    const list = document.getElementById('list');
-    list.innerHTML = "";
+function highlight(text, keyword) {
+  if (!keyword) return text;
+  const regex = new RegExp(`(${keyword})`, "gi");
+  return text.replace(regex, "<mark>$1</mark>");
+}
 
-    const filtered = dataArticles.filter(item =>
-      item.Judul.toLowerCase().includes(keyword.toLowerCase())
-    );
+function renderArticles(keyword = "") {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
 
-    if (filtered.length === 0) {
-      list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
-      return;
-    }
+  const filtered = dataArticles.filter(item =>
+    item.Judul.toLowerCase().includes(keyword.toLowerCase())
+  );
 
-    filtered.forEach((item, index) => {
-      const articleHTML = `
-        <div class="article">
-          <h3 onclick="toggleIsi(${index})" style="cursor:pointer;">
-            ${item.Judul}
-          </h3>
-          <p id="isi-${index}" style="display:none;">
-            ${item.Isi}
-          </p>
+  if (filtered.length === 0) {
+    list.innerHTML = "<p>Tidak ada artikel ditemukan.</p>";
+    return;
+  }
+
+  filtered.forEach((item, index) => {
+    list.innerHTML += `
+      <div class="article">
+        <h3 onclick="toggle(${index})">
+          ${highlight(item.Judul, keyword)}
+        </h3>
+        <div class="content" id="content-${index}">
+          ${item.Isi}
         </div>
-      `;
-      list.innerHTML += articleHTML;
-    });
-  }
-
-  function toggleIsi(index) {
-    const isi = document.getElementById("isi-" + index);
-    isi.style.display = isi.style.display === "none" ? "block" : "none";
-  }
-
-  function loadData() {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: function(results) {
-        dataArticles = results.data;
-        renderArticles();
-      },
-      error: function(err) {
-        console.error("Gagal load CSV:", err);
-        document.getElementById('list').innerHTML =
-          "<p>Gagal memuat data.</p>";
-      }
-    });
-  }
-
-  document.getElementById('search').addEventListener('keyup', (e) => {
-    renderArticles(e.target.value);
+      </div>
+    `;
   });
+}
 
-  loadData();
+function toggle(index) {
+  if (activeIndex !== null && activeIndex !== index) {
+    document
+      .getElementById("content-" + activeIndex)
+      .classList.remove("open");
+  }
+
+  const content = document.getElementById("content-" + index);
+  content.classList.toggle("open");
+  activeIndex = content.classList.contains("open") ? index : null;
+}
+
+Papa.parse(url, {
+  download: true,
+  header: true,
+  skipEmptyLines: true,
+  complete: function(results) {
+    dataArticles = results.data;
+    renderArticles();
+  }
+});
+
+document.getElementById("search").addEventListener("keyup", e => {
+  activeIndex = null;
+  renderArticles(e.target.value);
+});
 </script>
+
+</body>
+</html>
