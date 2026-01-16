@@ -29,8 +29,8 @@
   const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSItc43UUq-pbnwE3NemKnaHcGt9XLVQm5GiZmucVDh-ndQ8Rs2UonaRccJpnWdnV0KwV_vZKhxjc6i/pub?gid=0&single=true&output=csv";
 
   // Gunakan proxy AllOrigins agar tidak kena CORS
-  const url = "https://api.allorigins.win/raw?url=" + encodeURIComponent(sheetUrl);
-
+const url = "https://api.allorigins.win/raw?url=" 
+  + encodeURIComponent(sheetUrl + "&t=" + new Date().getTime());
   let dataArticles = [];
   let activeIndex = null;
 
@@ -94,4 +94,5 @@
 </script>
 
 </body>
+
 </html>
